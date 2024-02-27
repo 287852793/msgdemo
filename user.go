@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"net"
 )
@@ -35,7 +34,7 @@ func (this *User) ListenMsg() {
 	for {
 		msg := <-this.Channel
 		// 接收到新的用户消息，写给客户端
-		fmt.Println("新用户消息：", msg)
+		//fmt.Println("新用户消息：", msg)
 		encodeBytes, _ := simplifiedchinese.GB18030.NewEncoder().Bytes([]byte(msg + "\n"))
 		_, err := this.conn.Write(encodeBytes)
 		if err != nil {

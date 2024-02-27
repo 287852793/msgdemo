@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"sync"
 )
@@ -47,24 +48,59 @@ func (this *Server) ListenMessage() {
 // 广播用户发出的消息
 func (this *Server) BroadCast(user *User, msg string) {
 	sendMsg := "[" + user.Addr + "]:" + user.Name + ":" + msg
-	fmt.Println("新用户上线：", sendMsg)
+	//fmt.Println("新用户上线：", sendMsg)
 	this.MessageChannel <- sendMsg
 }
 
 // 用户上线处理
 func (this *Server) Handler(conn net.Conn) {
-	fmt.Println("connection success...")
 	defer fmt.Println("handler end...")
 
 	// 当前有用户上线了
 	// 将用户加入到 online map 中
 	user := NewUser(conn)
+	fmt.Println("connection success... current user :", user.Name)
+
 	this.mapLock.Lock()
 	this.OnlineUsers[user.Name] = user
+	fmt.Println("当前在线人数：", len(this.OnlineUsers))
 	this.mapLock.Unlock()
 
 	// 广播用户上线的消息
 	this.BroadCast(user, "已上线")
+
+	// 接收客户端发过来的消息
+	go func() {
+		buffer := make([]byte, 4096)
+		for {
+			read, err := conn.Read(buffer)
+			//fmt.Println(err == io.EOF)
+			//fmt.Println(user.Name, read)
+
+			if err != nil && err != io.EOF {
+				fmt.Println("conn read error :", err)
+				fmt.Println(user.Name, "已强行下线")
+				this.BroadCast(user, "已下线")
+				// 移除在线用户列表中的当前 user
+				delete(this.OnlineUsers, user.Name)
+				fmt.Println("当前在线人数：", len(this.OnlineUsers))
+				return
+			}
+			// 这里暂时还不知道 netcat 如何操作可以进到这里的逻辑
+			if read == 0 {
+				this.BroadCast(user, "已下线")
+				// 移除在线用户列表中的当前 user
+				delete(this.OnlineUsers, user.Name)
+				fmt.Println("当前在线人数：", len(this.OnlineUsers))
+
+				return
+			}
+			msg := string(buffer[:read-1])
+
+			// 将得到的消息进行广播
+			this.BroadCast(user, msg)
+		}
+	}()
 
 	// 阻塞挡墙 goroutine，如果当前 goroutine 执行结束，内部创建的子 goroutine 也会强制结束
 	select {}
