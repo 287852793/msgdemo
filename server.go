@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"golang.org/x/text/encoding/simplifiedchinese"
 	"io"
 	"net"
 	"sync"
@@ -47,7 +48,7 @@ func (this *Server) ListenMessage() {
 
 // 广播用户发出的消息
 func (this *Server) BroadCast(user *User, msg string) {
-	sendMsg := "[" + user.Addr + "]:" + user.Name + ":" + msg
+	sendMsg := "[" + user.Addr + "]" + user.Name + ":" + msg
 	//fmt.Println("新用户上线：", sendMsg)
 	this.MessageChannel <- sendMsg
 }
@@ -131,4 +132,13 @@ func (this *Server) Start() {
 		go this.Handler(conn)
 	}
 
+}
+
+// 向指定连接发送消息
+func SendMessage(conn net.Conn, msg string) {
+	encodeBytes, _ := simplifiedchinese.GB18030.NewEncoder().Bytes([]byte(msg + "\n"))
+	_, err := conn.Write(encodeBytes)
+	if err != nil {
+		return
+	}
 }

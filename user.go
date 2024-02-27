@@ -1,7 +1,6 @@
 package main
 
 import (
-	"golang.org/x/text/encoding/simplifiedchinese"
 	"net"
 )
 
@@ -56,8 +55,20 @@ func (this *User) Logout() {
 
 // 用户发消息
 func (this *User) SendMessage(msg string) {
-	// 将得到的消息进行广播
-	this.server.BroadCast(this, msg)
+	if msg == "who" {
+		// 查询当前在线用户有谁
+		this.server.mapLock.Lock()
+		SendMessage(this.conn, "以下为当前在线的用户：")
+		for _, user := range this.server.OnlineUsers {
+			result := "[" + user.Addr + "]" + user.Name + " （在线）"
+			SendMessage(this.conn, result)
+		}
+		this.server.mapLock.Unlock()
+	} else {
+		// 将得到的消息进行广播
+		this.server.BroadCast(this, msg)
+	}
+
 }
 
 // 监听当前User 的 channel， 一旦有消息，就直接发送给客户端
@@ -66,11 +77,8 @@ func (this *User) ListenMsg() {
 		msg := <-this.Channel
 		// 接收到新的用户消息，写给客户端
 		//fmt.Println("新用户消息：", msg)
-		encodeBytes, _ := simplifiedchinese.GB18030.NewEncoder().Bytes([]byte(msg + "\n"))
-		_, err := this.conn.Write(encodeBytes)
-		if err != nil {
-			return
-		}
-
+		SendMessage(this.conn, msg)
 	}
 }
+
+
