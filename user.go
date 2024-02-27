@@ -64,6 +64,21 @@ func (this *User) SendMessage(msg string) {
 			SendMessage(this.conn, result)
 		}
 		this.server.mapLock.Unlock()
+	} else if len(msg) > 7 && msg[:7] == "rename " {
+		// 修改用户名操
+		// 判断新的用户名是否存在
+		_, ok := this.server.OnlineUsers[msg[7:]]
+		if ok {
+			SendMessage(this.conn, "当前用户名已存在，请尝试其他用户名...")
+		} else {
+			this.server.mapLock.Lock()
+			delete(this.server.OnlineUsers, this.Name)
+			this.server.OnlineUsers[msg[7:]] = this
+			this.Name = msg[7:]
+			this.server.mapLock.Unlock()
+
+			SendMessage(this.conn, "您的用户名已更新：["+msg[7:]+"]")
+		}
 	} else {
 		// 将得到的消息进行广播
 		this.server.BroadCast(this, msg)
@@ -80,5 +95,3 @@ func (this *User) ListenMsg() {
 		SendMessage(this.conn, msg)
 	}
 }
-
-
