@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 )
 
 type Server struct {
@@ -55,13 +56,15 @@ func (this *Server) BroadCast(user *User, msg string) {
 
 // 服务器端的用户业务处理
 func (this *Server) Handler(conn net.Conn) {
-	defer fmt.Println("handler end...")
-
 	// 当前有用户上线了,创建这个用户并登录
 	user := NewUser(conn, this)
 	fmt.Println("connection success... current user :", user.Name)
 	user.Login()
 	fmt.Println("当前在线人数：", len(this.OnlineUsers))
+	defer fmt.Println(user.Addr, "handler end...")
+
+	// 当前用户活跃标识
+	isActive := make(chan bool)
 
 	// 接收客户端发过来的消息
 	go func() {
@@ -88,11 +91,33 @@ func (this *Server) Handler(conn net.Conn) {
 			// 将得到的消息进行广播
 			msg := string(buffer[:read-1])
 			user.SendMessage(msg)
+
+			isActive <- true
 		}
 	}()
 
 	// 阻塞当前 goroutine，如果当前 goroutine 执行结束，内部创建的子 goroutine 也会强制结束
-	select {}
+	const limitTime int = 10
+	for {
+		select {
+		case <-isActive:
+			// 当前用户刚发送了消息，是活跃的，应该重置定时器
+			// 这里没有 break，直接向下执行下一个 case，自动重置下面的定时器
+		case <-time.After(time.Second * time.Duration(limitTime)):
+			// 当前用户已超时，强制下线
+			SendMessage(user.conn, fmt.Sprintf("%s%d%s", "你 ", limitTime, "s 内无任何操作，已强制下线"))
+			// 这里直接 close connection
+			//close(user.Channel)
+			err := conn.Close()
+			if err != nil {
+				return
+			}
+			// 结束当前的 handler
+			// todo：这里的 goroutine 结束之后，user 对象中开启的子 goroutine 并为结束，待处理
+			return
+
+		}
+	}
 
 }
 

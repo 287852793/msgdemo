@@ -8,6 +8,7 @@ type User struct {
 	Name    string
 	Addr    string
 	Channel chan string
+	Control chan int
 	conn    net.Conn
 	// 所属服务
 	server *Server
@@ -21,12 +22,13 @@ func NewUser(conn net.Conn, server *Server) *User {
 		Name:    addr,
 		Addr:    addr,
 		Channel: make(chan string),
+		Control: make(chan int),
 		conn:    conn,
 		server:  server,
 	}
 
 	// 启动用户消息监听
-	go user.ListenMsg()
+	go user.ListenMessage()
 
 	return user
 }
@@ -46,6 +48,7 @@ func (this *User) Login() {
 func (this *User) Logout() {
 	this.server.mapLock.Lock()
 	// 移除在线用户列表中的当前 user
+	this.Control <- 0
 	delete(this.server.OnlineUsers, this.Name)
 	this.server.mapLock.Unlock()
 
@@ -87,11 +90,31 @@ func (this *User) SendMessage(msg string) {
 }
 
 // 监听当前User 的 channel， 一旦有消息，就直接发送给客户端
-func (this *User) ListenMsg() {
+func (this *User) ListenMessage() {
+	// 以下为 父协程结束，子协程是否结束的测试代码，经测试，子协程不会结束
+	//go func() {
+	//	i := 0
+	//	for {
+	//		fmt.Println("test goroutine :", i)
+	//		i++
+	//		time.Sleep(time.Second * 1)
+	//	}
+	//}()
+
+	// 阻塞当前协程，持续接收 channel 中的消息
 	for {
-		msg := <-this.Channel
-		// 接收到新的用户消息，写给客户端
-		//fmt.Println("新用户消息：", msg)
-		SendMessage(this.conn, msg)
+		select {
+		case msg := <-this.Channel:
+			// 接收到新的用户消息，写给客户端
+			//fmt.Println("新用户消息：", msg)
+			SendMessage(this.conn, msg)
+		case command := <-this.Control:
+			if command == 0 {
+				// 接收到退出指令，退出当前协程
+				//fmt.Println(this.Addr, "user listener end...")
+				return
+			}
+		}
+
 	}
 }
