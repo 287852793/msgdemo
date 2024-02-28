@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"net"
+	"strings"
 )
 
 type User struct {
@@ -56,8 +58,8 @@ func (this *User) Logout() {
 	this.server.BroadCast(this, "已下线")
 }
 
-// 用户发消息
-func (this *User) SendMessage(msg string) {
+// 用户处理消息
+func (this *User) HandleMessage(msg string) {
 	if msg == "who" {
 		// 查询当前在线用户有谁
 		this.server.mapLock.Lock()
@@ -82,8 +84,28 @@ func (this *User) SendMessage(msg string) {
 
 			SendMessage(this.conn, "您的用户名已更新：["+msg[7:]+"]")
 		}
+	} else if len(msg) > 4 && msg[:3] == "to " {
+		// 解析私聊指令
+		arr := strings.SplitN(msg, " ", 3)
+		if len(arr) < 3 {
+			SendMessage(this.conn, "私聊指令错误，正确的格式为： to someone message")
+			return
+		}
+		remoteName := arr[1]
+		messageContent := arr[2]
+
+		// 查找用户
+		remoteUser, ok := this.server.OnlineUsers[remoteName]
+		if !ok {
+			SendMessage(this.conn, "私聊对象不存在，请确定用户名或使用 who 指令确认对是否在线")
+			return
+		}
+
+		// 发送私聊消息
+		SendMessage(remoteUser.conn, fmt.Sprintf("%s%s%s%s", "form [", this.Name, "]: ", messageContent))
+
 	} else {
-		// 将得到的消息进行广播
+		// 将得到的消息进行广播，发送到公共聊天室
 		this.server.BroadCast(this, msg)
 	}
 

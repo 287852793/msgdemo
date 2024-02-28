@@ -90,14 +90,14 @@ func (this *Server) Handler(conn net.Conn) {
 
 			// 将得到的消息进行广播
 			msg := string(buffer[:read-1])
-			user.SendMessage(msg)
+			user.HandleMessage(msg)
 
 			isActive <- true
 		}
 	}()
 
 	// 阻塞当前 goroutine，如果当前 goroutine 执行结束，内部创建的子 goroutine 也会强制结束
-	const limitTime int = 10
+	const limitTime int = 180
 	for {
 		select {
 		case <-isActive:
@@ -106,14 +106,13 @@ func (this *Server) Handler(conn net.Conn) {
 		case <-time.After(time.Second * time.Duration(limitTime)):
 			// 当前用户已超时，强制下线
 			SendMessage(user.conn, fmt.Sprintf("%s%d%s", "你 ", limitTime, "s 内无任何操作，已强制下线"))
-			// 这里直接 close connection
 			//close(user.Channel)
+			// 这里直接 close connection，会触发用户的下线功能，用户下线中会自动结束用户监听消息的协程
 			err := conn.Close()
 			if err != nil {
 				return
 			}
 			// 结束当前的 handler
-			// todo：这里的 goroutine 结束之后，user 对象中开启的子 goroutine 并为结束，待处理
 			return
 
 		}

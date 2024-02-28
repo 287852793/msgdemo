@@ -7,6 +7,7 @@ package main
 
 func main() {
 	// test code
+
 	//list := make(map[string]*Info)
 	//i1 := &Info{
 	//	s: "a",
@@ -20,6 +21,12 @@ func main() {
 	//list[i2.s] = i2
 	//
 	//fmt.Println(len(list))
+
+	//msg := "to pyf"
+	//arr := strings.SplitN(msg, " ", 3)
+	//fmt.Println(arr[0])
+	//fmt.Println(arr[1])
+	//fmt.Println(arr[2])
 
 	// server start
 	server := NewServer("127.0.0.1", 8888)
