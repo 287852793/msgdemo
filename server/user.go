@@ -71,18 +71,21 @@ func (this *User) HandleMessage(msg string) {
 		this.server.mapLock.Unlock()
 	} else if len(msg) > 7 && msg[:7] == "rename " {
 		// 修改用户名操
+		newName := msg[7:]
+		fmt.Println("尝试更新用户名:",newName)
+
 		// 判断新的用户名是否存在
-		_, ok := this.server.OnlineUsers[msg[7:]]
+		_, ok := this.server.OnlineUsers[newName]
 		if ok {
 			SendMessage(this.conn, "当前用户名已存在，请尝试其他用户名...")
 		} else {
 			this.server.mapLock.Lock()
 			delete(this.server.OnlineUsers, this.Name)
-			this.server.OnlineUsers[msg[7:]] = this
-			this.Name = msg[7:]
+			this.server.OnlineUsers[newName] = this
+			this.Name = newName
 			this.server.mapLock.Unlock()
 
-			SendMessage(this.conn, "您的用户名已更新：["+msg[7:]+"]")
+			SendMessage(this.conn, "您的用户名已更新：["+newName+"]")
 		}
 	} else if len(msg) > 4 && msg[:3] == "to " {
 		// 解析私聊指令

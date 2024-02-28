@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"golang.org/x/text/encoding/simplifiedchinese"
 	"io"
 	"net"
 	"sync"
@@ -160,8 +159,15 @@ func (this *Server) Start() {
 
 // 向指定连接发送消息
 func SendMessage(conn net.Conn, msg string) {
-	encodeBytes, _ := simplifiedchinese.GB18030.NewEncoder().Bytes([]byte(msg + "\n"))
-	_, err := conn.Write(encodeBytes)
+
+	// 如果使用 windows cmd netcat 连接 server，会因 cmd 默认编码 GB2312 但 golang 默认 utf-8 而导致乱码
+	// 下面两行是将消息转为 windows cmd 默认编码的内容进行输出，以确保 cmd 不显示乱码
+	//encodeBytes, _ := simplifiedchinese.GB18030.NewEncoder().Bytes([]byte(msg + "\n"))
+	//_, err := conn.Write(encodeBytes)
+
+	// 如果是使用 golang 编写的 client，则没有编码转换的问题，只需要默认输出即可
+	_, err := conn.Write([]byte(msg + "\n"))
+
 	if err != nil {
 		return
 	}
