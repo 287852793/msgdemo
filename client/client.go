@@ -77,7 +77,11 @@ func (client *Client) PublicChat() {
 
 	for {
 		fmt.Println("========请输入消息，按回车发送，输入exit以退出公聊模式========")
-		fmt.Scanln(&message)
+		_, err := fmt.Scanln(&message)
+		if err != nil {
+			fmt.Println("scan error :", err)
+			return
+		}
 
 		if message == "exit" {
 			// 退出公聊模式
