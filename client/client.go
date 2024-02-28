@@ -105,8 +105,8 @@ func (client *Client) PublicChat() {
 }
 
 // 私聊模式操作
+// todo: 私聊对象选择，而不是输入用户名, 还可以避免跟自己聊天，或者是跟不存在的用户聊天
 func (client *Client) PrivateChat() {
-
 	remoteUsername := ""
 
 	for {
