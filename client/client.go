@@ -33,8 +33,7 @@ func NewClient(ip string, port int) *Client {
 		return nil
 	}
 	client.conn = conn
-
-	fmt.Println(conn.LocalAddr())
+	client.Username = conn.LocalAddr().String()
 
 	return client
 }
@@ -55,11 +54,10 @@ func (client *Client) HandleResponse() {
 		if err != nil {
 			if err == io.EOF {
 				// 连接被强制关闭，client 进行强制下线处理
-				os.Exit(1)
 			} else {
 				fmt.Println("connection read error:", err.Error())
 			}
-			break
+			os.Exit(1)
 		}
 		// 将服务端的消息输出到本地终端，不用换行，因为消息中已经包含换行符
 		fmt.Print(message)
@@ -100,8 +98,8 @@ func (client *Client) PublicChat() {
 		fmt.Println("========请输入消息，按回车发送，输入exit以退出公聊模式========")
 		_, err := fmt.Scanln(&message)
 		if err != nil {
-			fmt.Println("scan error :", err)
-			return
+			//fmt.Println("public chat scan error :", err)
+			continue
 		}
 
 		if message == "exit" {
@@ -129,14 +127,15 @@ func (client *Client) PublicChat() {
 // todo: 私聊对象选择，而不是输入用户名, 还可以避免跟自己聊天，或者是跟不存在的用户聊天
 func (client *Client) PrivateChat() {
 	remoteUsername := ""
+	fmt.Println("my name :", client.Username)
 
 	for {
 		client.selectChatUser()
 		fmt.Println("========请输入私聊对象的用户名，输入exit以退出私聊模式========")
 		_, err := fmt.Scanln(&remoteUsername)
 		if err != nil {
-			fmt.Println("scan error :", err)
-			return
+			//fmt.Println("private chat scan error :", err)
+			continue
 		}
 
 		if remoteUsername == "exit" {
@@ -149,8 +148,8 @@ func (client *Client) PrivateChat() {
 			fmt.Println("========请对[" + remoteUsername + "]发送消息，输入exit以结束当前私聊========")
 			_, err := fmt.Scanln(&message)
 			if err != nil {
-				fmt.Println("scan error :", err)
-				return
+				//fmt.Println("to someone message scan error :", err)
+				continue
 			}
 
 			if message == "exit" {

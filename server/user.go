@@ -65,7 +65,7 @@ func (this *User) HandleMessage(msg string) {
 		this.server.mapLock.Lock()
 		SendMessage(this.conn, "以下为当前在线的用户：")
 		for _, user := range this.server.OnlineUsers {
-			result := "[" + user.Addr + "]" + user.Name + " （在线）"
+			result := "[" + user.Addr + "] [" + user.Name + "]（在线）"
 			SendMessage(this.conn, result)
 		}
 		this.server.mapLock.Unlock()
