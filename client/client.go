@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"io"
@@ -33,6 +34,8 @@ func NewClient(ip string, port int) *Client {
 	}
 	client.conn = conn
 
+	fmt.Println(conn.LocalAddr())
+
 	return client
 }
 
@@ -40,10 +43,28 @@ func NewClient(ip string, port int) *Client {
 func (client *Client) HandleResponse() {
 	// 永久阻塞，一旦 client.conn 有输出，直接拷贝到当前的 stdout 中，显示给用户
 	// io.Copy 不支持编码转换，如果需要转换编码需要自己编写程序从 conn 中读取数据并用 fmt.Println 进行输出
-	_, err := io.Copy(os.Stdout, client.conn)
-	if err != nil {
-		return
+	//_, err := io.Copy(os.Stdout, client.conn)
+	//if err != nil {
+	//	return
+	//}
+
+	// 手动读取 client.conn 的输出并进行操作
+	reader := bufio.NewReader(client.conn)
+	for {
+		message, err := reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				// 连接被强制关闭，client 进行强制下线处理
+				os.Exit(1)
+			} else {
+				fmt.Println("connection read error:", err.Error())
+			}
+			break
+		}
+		// 将服务端的消息输出到本地终端，不用换行，因为消息中已经包含换行符
+		fmt.Print(message)
 	}
+
 }
 
 // 客户端操作提示菜单
